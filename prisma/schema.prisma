@@ -1,0 +1,72 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum MeuredJobPostStatus {
+  DRAFT
+  PUBLISHED
+  CLOSED
+  DELETED
+}
+
+enum MeuredJobApplicationStatus {
+  SUBMITTED
+  WITHDRAWN
+  REVIEWING
+  REJECTED
+  ACCEPTED
+}
+
+model MeuredJobPost {
+  id               String             @id @default(uuid())
+  createdByAuthUserId String
+  entityId         String?
+  title            String
+  description      String
+  status           MeuredJobPostStatus @default(PUBLISHED)
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+
+  applications MeuredJobApplication[]
+  bookmarks    MeuredJobBookmark[]
+
+  @@index([createdByAuthUserId])
+  @@index([entityId])
+  @@index([createdAt])
+  @@index([status])
+}
+
+model MeuredJobApplication {
+  id                 String                    @id @default(uuid())
+  jobPostId          String
+  applicantAuthUserId String
+  coverLetter        String?
+  status             MeuredJobApplicationStatus @default(SUBMITTED)
+  createdAt          DateTime                  @default(now())
+  updatedAt          DateTime                  @updatedAt
+
+  jobPost MeuredJobPost @relation(fields: [jobPostId], references: [id], onDelete: Cascade)
+
+  @@unique([jobPostId, applicantAuthUserId])
+  @@index([applicantAuthUserId])
+  @@index([status])
+}
+
+model MeuredJobBookmark {
+  id        String   @id @default(uuid())
+  authUserId String
+  jobPostId String
+  createdAt DateTime @default(now())
+
+  jobPost MeuredJobPost @relation(fields: [jobPostId], references: [id], onDelete: Cascade)
+
+  @@unique([authUserId, jobPostId])
+  @@index([authUserId])
+  @@index([jobPostId])
+}
+
